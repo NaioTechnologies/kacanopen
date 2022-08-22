@@ -25,6 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <stdlib.h>
 #include <stddef.h>		/* for NULL */
 #include <errno.h>
+#include <fcntl.h>
 
 #include "config.h"
 
@@ -39,6 +40,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define CAN_IOCTL      rt_dev_ioctl
 #define CAN_SETSOCKOPT rt_dev_setsockopt
 #define CAN_ERRNO(err) (-err)
+#define CAN_FCNTL      rt_dev_fcntl
 #else
 #include <unistd.h>
 #include <sys/socket.h>
@@ -62,6 +64,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define CAN_IOCTL      ioctl
 #define CAN_ERRNO(err) errno
 #define CAN_SETSOCKOPT setsockopt
+#define CAN_FCNTL      fcntl
 #endif
 
 #include "can_driver.h"
@@ -76,8 +79,9 @@ canReceive_driver (CAN_HANDLE fd0, Message * m)
   res = CAN_RECV (*(int *) fd0, &frame, sizeof (frame), 0);
   if (res < 0)
     {
-      fprintf (stderr, "Recv failed: %s\n", strerror (CAN_ERRNO (res)));
-      return 1;
+      int errno_value = CAN_ERRNO (res);
+      fprintf (stderr, "Recv failed: %s\n", strerror (errno_value));
+      return errno_value;
     }
 
   m->cob_id = frame.can_id & CAN_EFF_MASK;
@@ -264,6 +268,14 @@ canOpen_driver (s_BOARD * board)
       goto error_close;
     }
 #endif
+
+  err = CAN_FCNTL (*(int *) fd0, F_SETFL, O_NONBLOCK);
+  if (err)
+  {
+      fprintf (stderr, "Setting O_NONBLOCK failed: %s\n",
+	       strerror (CAN_ERRNO (err)));
+      goto error_close;
+  }
 
   return fd0;
 

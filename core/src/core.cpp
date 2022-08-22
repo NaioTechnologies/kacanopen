@@ -127,9 +127,18 @@ void Core::receive_loop(std::atomic<bool>& running) {
 
 	while (running) {
 
-		canReceive_driver(m_handle, &message);
-		received_message(message);
-
+		const int err = canReceive_driver(m_handle, &message);
+		if (err != 0)
+		{
+			if (err == EAGAIN)
+			{
+				std::this_thread::sleep_for (std::chrono::seconds (1));
+			}
+		}
+		else
+		{
+			received_message(message);
+		}
 	}
 
 }
