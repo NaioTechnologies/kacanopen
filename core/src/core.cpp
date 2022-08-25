@@ -132,7 +132,7 @@ void Core::receive_loop(std::atomic<bool>& running) {
 		{
 			if (err == EAGAIN)
 			{
-				std::this_thread::sleep_for (std::chrono::seconds (1));
+				std::this_thread::sleep_for (std::chrono::milliseconds (5));
 			}
 		}
 		else
